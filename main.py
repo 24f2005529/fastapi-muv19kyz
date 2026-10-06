@@ -19,7 +19,7 @@ app.add_middleware(
 # Q10 - Student API
 # =========================================================
 
-CSV_FILE = Path(__file__).parent / "q-fastapi.csv"
+CSV_FILE = Path(__file__).parent / "students.csv"
 
 
 def load_students():
@@ -73,12 +73,13 @@ POSITIVE_WORDS = {
     "hopeful", "optimistic", "fun", "funny", "impressive",
     "success", "successful", "win", "wins", "won", "victory",
     "positive", "recommend", "recommended", "satisfied",
-    "satisfaction", "beautiful", "brilliant", "cheerful",
+    "satisfaction", "beautiful", "cheerful",
     "smile", "smiling", "laugh", "laughing", "relaxed",
     "peaceful", "pleasant", "pleasure", "favorite", "favourite",
     "adorable", "incredible", "outstanding", "magnificent",
     "terrific", "delightful", "remarkable", "proud", "pride"
 }
+
 
 NEGATIVE_WORDS = {
     "hate", "hated", "hates", "dislike", "disliked", "dislikes",
@@ -90,17 +91,17 @@ NEGATIVE_WORDS = {
     "disappointment", "poor", "failure", "failed", "fail",
     "problem", "problems", "issue", "issues", "pain", "painful",
     "suffer", "suffering", "cry", "crying", "tears", "boring",
-    "bored", "boring", "negative", "regret", "regretted",
+    "bored", "negative", "regret", "regretted",
     "disaster", "useless", "worthless", "ridiculous", "stupid",
     "horrendous", "dreadful", "miserable", "misery", "lonely",
     "loneliness", "fear", "afraid", "scared", "terrified",
     "worried", "worry", "worrying", "stress", "stressed",
     "horrific", "evil", "badly", "broken", "damage", "damaged",
     "loss", "lost", "losing", "complaint", "complain",
-    "complained", "dislike", "weak", "annoyance", "disaster"
+    "complained", "weak", "annoyance"
 }
 
-# Strong sentiment phrases
+
 POSITIVE_PHRASES = {
     "feel great",
     "feeling great",
@@ -133,6 +134,7 @@ POSITIVE_PHRASES = {
     "very excited",
     "extremely happy"
 }
+
 
 NEGATIVE_PHRASES = {
     "feel terrible",
@@ -180,14 +182,14 @@ NEGATIVE_PHRASES = {
 def classify_sentiment(sentence: str) -> str:
     text = sentence.lower().strip()
 
-    # Normalize punctuation
+    # Normalize punctuation while preserving apostrophes
     cleaned = re.sub(r"[^a-z0-9\s']", " ", text)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
 
     positive_score = 0
     negative_score = 0
 
-    # Phrase matching gets higher weight
+    # Phrase matching
     for phrase in POSITIVE_PHRASES:
         if phrase in cleaned:
             positive_score += 3
@@ -196,7 +198,7 @@ def classify_sentiment(sentence: str) -> str:
         if phrase in cleaned:
             negative_score += 3
 
-    # Token-based matching
+    # Word matching
     words = set(re.findall(r"\b[a-z]+\b", cleaned))
 
     positive_score += sum(
@@ -207,7 +209,7 @@ def classify_sentiment(sentence: str) -> str:
         1 for word in NEGATIVE_WORDS if word in words
     )
 
-    # Handle explicit negation of individual sentiment words
+    # Explicit negation
     negation_patterns = [
         r"\bnot\s+(good|great|happy|nice|excellent|amazing|wonderful|love|like|perfect)\b",
         r"\bnever\s+(good|great|happy|love|like)\b",
@@ -223,15 +225,24 @@ def classify_sentiment(sentence: str) -> str:
         if re.search(pattern, cleaned):
             negative_score += 2
 
-    # "not bad" / "not terrible" is generally positive
-    if re.search(r"\bnot\s+(bad|terrible|awful|horrible|worst)\b", cleaned):
+    # "not bad" is generally positive
+    if re.search(
+        r"\bnot\s+(bad|terrible|awful|horrible|worst)\b",
+        cleaned
+    ):
         positive_score += 2
 
     # Emoji clues
-    if any(x in text for x in ["😊", "😄", "😀", "😍", "🥰", "❤️", "❤", "👍", "🎉"]):
+    if any(
+        x in text
+        for x in ["😊", "😄", "😀", "😍", "🥰", "❤️", "❤", "👍", "🎉"]
+    ):
         positive_score += 2
 
-    if any(x in text for x in ["😢", "😭", "😞", "😔", "😡", "🤬", "💔", "👎"]):
+    if any(
+        x in text
+        for x in ["😢", "😭", "😞", "😔", "😡", "🤬", "💔", "👎"]
+    ):
         negative_score += 2
 
     if positive_score > negative_score:
